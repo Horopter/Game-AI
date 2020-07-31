@@ -24,7 +24,7 @@ function isFilled(x, y) {
   return false;
 }
 
-let bKi, bQu, wKi, wQu, bRo, wRo, bBi, wBi, bKn, wKn, bPa, wPa, cb, grabbed, grabbedPiece;
+let bKi, bQu, wKi, wQu, bRo, wRo, bBi, wBi, bKn, wKn, bPa, wPa, cb;
 
 function preload() {
   bKi = loadImage('images/bKi.png');
@@ -50,6 +50,7 @@ class Chesspiece {
     this.currentPosY = this.posY;
     this.posXArray = [];
     this.posYArray = [];
+    this.attackArray = [];
     this.grabbed = false;
   }
   clearPossiblePositions() {
@@ -57,7 +58,7 @@ class Chesspiece {
     this.posYArray = [];
   }
   appendMove(x, y, cond) {
-    let reqX, reqY;
+    let reqX, reqY, isAttack;
     if (this.isGrabbed) {
       reqX = this.prevPosX;
       reqY = this.prevPosY;
@@ -65,12 +66,14 @@ class Chesspiece {
       reqX = this.currentPosX;
       reqY = this.currentPosY;
     }
+    isAttack = (cond == isFilled(reqX + x,
+                                 reqY + y));
     if (isValid(reqX + x) &&
-      isValid(reqY + y) &&
-      (cond == isFilled(reqX + x,
-                        reqY + y))) {
+        isValid(reqY + y) &&
+        isAttack) {
       this.posXArray.push(x);
       this.posYArray.push(y);
+      this.attackArray.push(cond);
       return true;
     }
     return false;
@@ -87,7 +90,13 @@ class Pawn extends Chesspiece {
     playGrid[this.posX][this.posY] = 1;
   }
   fetchPossibleMovePositions() {
-    if (this.currentPosY === this.posY) {
+    let reqY;
+    if (this.isGrabbed) {
+      reqY = this.prevPosY;
+    } else {
+      reqY = this.currentPosY;
+    }
+    if (reqY === this.posY) {
       this.appendMove(0, this.direction, false);
       this.appendMove(0, 2 * this.direction, false);
     } else {
@@ -392,7 +401,7 @@ function draw() {
 }
 
 function mousePressed() {
-  if (grabbed !== true) {
+  if (cb.grabbed != true) {
     for (var piece of cb.allChesspieces) {
       radius = (sizeX * 1.0 / 2);
       centerX = piece.currentPosX * sizeX + radius;
@@ -401,13 +410,14 @@ function mousePressed() {
       if (d < radius) {
         cb.grabbed = true;
         cb.grabbedPiece = piece;
+        if (cb.grabbedPiece.isGrabbed != true) {
+          cb.grabbedPiece.prevPosX = cb.grabbedPiece.currentPosX;
+          cb.grabbedPiece.prevPosY = cb.grabbedPiece.currentPosY;
+        }
         cb.grabbedPiece.isGrabbed = true;
-        cb.grabbedPiece.prevPosX = cb.grabbedPiece.currentPosX;
-        cb.grabbedPiece.prevPosY = cb.grabbedPiece.currentPosY;
         break;
       }
     }
-    
     print(cb.grabbedPiece,cb.grabbedPiece.posXArray,cb.grabbedPiece.posYArray);
   }
 }
@@ -451,11 +461,15 @@ function drawBoard() {
       cb.grabbedPiece.clearPossiblePositions();
       cb.grabbedPiece.fetchPossiblePositions();
     for (var a = 0; a < cb.grabbedPiece.posXArray.length; a ++) {
-      positionX = cb.grabbedPiece.prevPosX*sizeX + cb.grabbedPiece.posXArray[a]*sizeX;
-      positionY = cb.grabbedPiece.prevPosY*sizeY + cb.grabbedPiece.posYArray[a]*sizeY;
-      fill(0,128,0);
+      positionX = (cb.grabbedPiece.prevPosX + cb.grabbedPiece.posXArray[a])*sizeX;
+      positionY = (cb.grabbedPiece.prevPosY + cb.grabbedPiece.posYArray[a])*sizeY;
+      if (cb.grabbedPiece.attackArray[a]) {
+        fill(128,0,0);
+      } else {
+        fill(0,128,0);
+      }
       rect(positionX, positionY, sizeX, sizeY);
-      
+      print(cb.grabbedPiece.prevPosX, cb.grabbedPiece.prevPosY, cb.grabbedPiece.posXArray[a], cb.grabbedPiece.posYArray[a], cb.grabbedPiece.attackArray[a]);
     }
   }
   
