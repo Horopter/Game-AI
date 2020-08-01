@@ -54,11 +54,17 @@ class Chesspiece {
     this.posYArray = [];
     this.attackArray = [];
     this.grabbed = false;
+    this.isAlive = true;
+    this.isMoved = false;
   }
   markOnGrid() {
+    // mark the current position
     playGrid[this.curPosX][this.curPosY] = this.id;
-    if (this.prevPosX !== this.curPosX && this.prevPosY !== this.curPosY) {
+    if (this.prevPosX !== this.curPosX || this.prevPosY !== this.curPosY) {
+      // empty out the previous position
       playGrid[this.prevPosX][this.prevPosY] = 0;
+      // actually used for only King and Rook and this happened to be LCA.
+      this.isMoved = true;
     }
   }
   clearPossiblePositions() {
@@ -69,9 +75,9 @@ class Chesspiece {
   validateMove() {
     for (var a = 0; a < this.posXArray.length; a++) {
       if (this.curPosX === this.prevPosX + this.posXArray[a] &&
-          this.curPosY === this.prevPosY + this.posYArray[a]) {
-            return true;
-          }
+        this.curPosY === this.prevPosY + this.posYArray[a]) {
+        return true;
+      }
     }
     return false;
   }
@@ -109,6 +115,14 @@ class Chesspiece {
     }
     return false;
   }
+  checkAttackAndSelfDestruct(attacker) {
+    if (this.prevPosX == attacker.curPosX &&
+      this.prevPosY == attacker.curPosY) {
+      this.isAlive = false;
+      return true;
+    }
+    return false;
+  }
 }
 
 class Pawn extends Chesspiece {
@@ -116,10 +130,10 @@ class Pawn extends Chesspiece {
     super(initPosX, initPosY, pieceColor);
     this.direction = (numSquares - this.posY) < 4 ? -1 : 1;
     this.image = pieceColor ? bPa : wPa;
-    this.clearPossiblePositions();
-    this.fetchPossiblePositions();
     this.id = this.pieceColor ? 1 : 2;
+    this.needsPromotion = false;
     this.markOnGrid();
+    this.update();
   }
   fetchPossibleMovePositions() {
     let reqY;
@@ -143,16 +157,24 @@ class Pawn extends Chesspiece {
     this.fetchPossibleMovePositions();
     this.fetchPossibleAttackPositions();
   }
+  update() {
+    if (this.isAlive) {
+      this.clearPossiblePositions();
+      this.fetchPossiblePositions();
+      if (this.curPosY == this.posY + (numSquares - 2)*this.direction) {
+        this.needsPromotion = true;
+      }
+    }
+  }
 }
 
 class Rook extends Chesspiece {
   constructor(initPosX, initPosY, pieceColor) {
     super(initPosX, initPosY, pieceColor);
     this.image = pieceColor ? bRo : wRo;
-    this.clearPossiblePositions();
-    this.fetchPossiblePositions();
     this.id = this.pieceColor ? 3 : 4;
     this.markOnGrid();
+    this.update();
   }
   fetchPossiblePositions() {
     var isVacant;
@@ -185,16 +207,19 @@ class Rook extends Chesspiece {
       }
     }
   }
+  update() {
+    this.clearPossiblePositions();
+    this.fetchPossiblePositions();
+  }
 }
 
 class Bishop extends Chesspiece {
   constructor(initPosX, initPosY, pieceColor) {
     super(initPosX, initPosY, pieceColor);
     this.image = pieceColor ? bBi : wBi;
-    this.clearPossiblePositions();
-    this.fetchPossiblePositions();
     this.id = this.pieceColor ? 5 : 6;
     this.markOnGrid();
+    this.update();
   }
   fetchPossiblePositions() {
     var isVacant;
@@ -227,16 +252,19 @@ class Bishop extends Chesspiece {
       }
     }
   }
+  update() {
+    this.clearPossiblePositions();
+    this.fetchPossiblePositions();
+  }
 }
 
 class Knight extends Chesspiece {
   constructor(initPosX, initPosY, pieceColor) {
     super(initPosX, initPosY, pieceColor);
     this.image = pieceColor ? bKn : wKn;
-    this.clearPossiblePositions();
-    this.fetchPossiblePositions();
     this.id = this.pieceColor ? 7 : 8;
     this.markOnGrid();
+    this.update();
   }
   fetchPossiblePositions() {
     this.appendMove(1, 2, true);
@@ -257,16 +285,19 @@ class Knight extends Chesspiece {
     this.appendMove(2, -1, false);
     this.appendMove(-2, -1, false);
   }
+  update() {
+    this.clearPossiblePositions();
+    this.fetchPossiblePositions();
+  }
 }
 
 class Queen extends Chesspiece {
   constructor(initPosX, initPosY, pieceColor) {
     super(initPosX, initPosY, pieceColor);
     this.image = pieceColor ? bQu : wQu;
-    this.clearPossiblePositions();
-    this.fetchPossiblePositions();
     this.id = this.pieceColor ? 9 : 10;
     this.markOnGrid();
+    this.update();
   }
   /*
    * Ideally I'd have inherited from two classes
@@ -334,16 +365,19 @@ class Queen extends Chesspiece {
       }
     }
   }
+  update() {
+    this.clearPossiblePositions();
+    this.fetchPossiblePositions();
+  }
 }
 
 class King extends Chesspiece {
   constructor(initPosX, initPosY, pieceColor) {
     super(initPosX, initPosY, pieceColor);
     this.image = pieceColor ? bKi : wKi;
-    this.clearPossiblePositions();
-    this.fetchPossiblePositions();
     this.id = this.pieceColor ? 11 : 12;
     this.markOnGrid();
+    this.update();
   }
   fetchPossiblePositions() {
     this.appendMove(0, 1, false);
@@ -363,6 +397,10 @@ class King extends Chesspiece {
     this.appendMove(-1, -1, true);
     this.appendMove(-1, 0, true);
     this.appendMove(1, 0, true);
+  }
+  update() {
+    this.clearPossiblePositions();
+    this.fetchPossiblePositions();
   }
 }
 
@@ -422,6 +460,44 @@ class ChessBoard {
     this.grabbed = null;
     this.grabbedPiece = null;
   }
+  notifyAttackFromGrabbedPiece() {
+    let isKilled;
+    for (var cp of this.allChesspieces) {
+      isKilled = cp.checkAttackAndSelfDestruct(this.grabbedPiece);
+      if (isKilled) {
+        break;
+      }
+    }
+  }
+  update() {
+    let pawn, x;
+    for (pawn of this.myPawns) {
+      if (pawn.isAlive && pawn.needsPromotion) {
+        pawn.isAlive = false;
+        x = new Queen(pawn.curPosX, pawn.curPosY, pawn.pieceColor);
+        if (pawn.pieceColor === 0) {
+          this.myChesspieces.push(x);
+        } else {
+          this.oppChesspieces.push(x);
+        }
+        this.allChesspieces.push(x);
+        break;
+      }
+    }
+    for (pawn of this.oppPawns) {
+      if (pawn.isAlive && pawn.needsPromotion) {
+        pawn.isAlive = false;
+        x = new Queen(pawn.curPosX, pawn.curPosY, pawn.pieceColor);
+        if (pawn.pieceColor === 0) {
+          this.myChesspieces.push(x);
+        } else {
+          this.oppChesspieces.push(x);
+        }
+        this.allChesspieces.push(x);
+        break;
+      }
+    }
+  }
 }
 
 function setup() {
@@ -440,32 +516,39 @@ function draw() {
 function mousePressed() {
   if (cb.grabbed != true) {
     for (var piece of cb.allChesspieces) {
-      radius = (sizeX * 1.0 / 2);
-      centerX = piece.curPosX * sizeX + radius;
-      centerY = piece.curPosY * sizeY + radius;
-      d = dist(mouseX, mouseY, centerX, centerY);
-      if (d < radius) {
-        cb.grabbed = true;
-        cb.grabbedPiece = piece;
-        if (cb.grabbedPiece.isGrabbed != true) {
-          cb.grabbedPiece.prevPosX = cb.grabbedPiece.curPosX;
-          cb.grabbedPiece.prevPosY = cb.grabbedPiece.curPosY;
+      if (piece.isAlive) {
+        radius = (sizeX * 1.0 / 2);
+        centerX = piece.curPosX * sizeX + radius;
+        centerY = piece.curPosY * sizeY + radius;
+        d = dist(mouseX, mouseY, centerX, centerY);
+        if (d < radius) {
+          print(piece);
+          cb.grabbed = true;
+          cb.grabbedPiece = piece;
+          if (cb.grabbedPiece.isGrabbed != true) {
+            cb.grabbedPiece.prevPosX = cb.grabbedPiece.curPosX;
+            cb.grabbedPiece.prevPosY = cb.grabbedPiece.curPosY;
+            cb.grabbedPiece.isGrabbed = true;
+            break;
+          }
         }
-        cb.grabbedPiece.isGrabbed = true;
-        break;
       }
     }
   }
+  print(playGrid);
 }
 
 function mouseReleased() {
   if (cb.grabbed) {
-    print("Hey!",cb.grabbedPiece.validateMove());
     if (false === cb.grabbedPiece.validateMove()) {
       cb.grabbedPiece.resetPosition();
     } else {
-       playGrid[cb.grabbedPiece.prevPosX][cb.grabbedPiece.prevPosY] = 0;
-       cb.grabbedPiece.markOnGrid();
+      // notify the occupant if any
+      cb.notifyAttackFromGrabbedPiece();
+      // transition
+      cb.grabbedPiece.markOnGrid();
+      // update for promotions, if any
+      cb.update();
     }
     cb.grabbed = false;
     cb.grabbedPiece.isGrabbed = false;
@@ -479,7 +562,7 @@ function mouseDragged() {
     cb.grabbedPiece.curPosY = round((mouseY - radius) * 1.0 / (sizeY));
     if (cb.grabbedPiece.curPosX < 0 || cb.grabbedPiece.curPosX > numSquares - 1 ||
       cb.grabbedPiece.curPosY < 0 || cb.grabbedPiece.curPosY > numSquares - 1) {
-        cb.grabbedPiece.resetPosition();
+      cb.grabbedPiece.resetPosition();
     }
   }
 }
@@ -502,9 +585,13 @@ function drawBoard() {
     }
   }
   if (cb.grabbed) {
-    cb.grabbedPiece.clearPossiblePositions();
-    cb.grabbedPiece.fetchPossiblePositions();
-    for (var a = 0; a < cb.grabbedPiece.posXArray.length; a ++) {
+    cb.grabbedPiece.update();
+    for (var a = 0; a < cb.grabbedPiece.posXArray.length; a++) {
+      /*
+       * I thought of storing these things but considering it's a
+       * one time job and that browser memory is precious, I vetoed
+       * against it. I can take browser render time but not memory.
+       */
       positionX = (cb.grabbedPiece.prevPosX + cb.grabbedPiece.posXArray[a])*sizeX;
       positionY = (cb.grabbedPiece.prevPosY + cb.grabbedPiece.posYArray[a])*sizeY;
       if (cb.grabbedPiece.attackArray[a]) {
@@ -517,6 +604,8 @@ function drawBoard() {
   }
 
   for (var cp of cb.allChesspieces) {
-    image(cp.image, cp.curPosX * sizeX, cp.curPosY * sizeY, 60, 60);
+    if (cp.isAlive) {
+      image(cp.image, cp.curPosX * sizeX, cp.curPosY * sizeY, 60, 60);
+    }
   }
 }
