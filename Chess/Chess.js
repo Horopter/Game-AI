@@ -72,11 +72,14 @@ class Chesspiece {
     this.posYArray = [];
     this.attackArray = [];
   }
-  validateMove() {
+  validateMove(turn) {
     for (var a = 0; a < this.posXArray.length; a++) {
-      if (this.curPosX === this.prevPosX + this.posXArray[a] &&
-        this.curPosY === this.prevPosY + this.posYArray[a]) {
-        return true;
+      if (this.curPosX === this.prevPosX + this.posXArray[a]) {
+        if (this.curPosY === this.prevPosY + this.posYArray[a]) {
+          if (this.id%2 == turn) {
+            return true;
+          }
+        }
       }
     }
     return false;
@@ -88,11 +91,11 @@ class Chesspiece {
   appendMove(x, y, cond) {
     let reqX, reqY;
     if (this.isGrabbed) {
+      reqX = this.grabPosX;
+      reqY = this.grabPosY;
+    } else {
       reqX = this.prevPosX;
       reqY = this.prevPosY;
-    } else {
-      reqX = this.curPosX;
-      reqY = this.curPosY;
     }
 
     if (isValid(reqX + x) &&
@@ -116,12 +119,21 @@ class Chesspiece {
     return false;
   }
   checkAttackAndSelfDestruct(attacker) {
-    if (this.prevPosX == attacker.curPosX &&
-      this.prevPosY == attacker.curPosY) {
+    if (this != attacker &&
+      this.curPosX == attacker.curPosX &&
+      this.curPosY == attacker.curPosY) {
       this.isAlive = false;
       return true;
     }
     return false;
+  }
+  update() {
+    this.grabPosX = this.curPosX;
+    this.grabPosY = this.curPosY;
+  }
+  shouldFlipTurn() {
+    return (this.curPosX != this.prevPosX ||
+      this.curPosY != this.prevPosY);
   }
 }
 
@@ -138,7 +150,7 @@ class Pawn extends Chesspiece {
   fetchPossibleMovePositions() {
     let reqY;
     if (this.isGrabbed) {
-      reqY = this.prevPosY;
+      reqY = this.grabPosY;
     } else {
       reqY = this.curPosY;
     }
@@ -159,8 +171,10 @@ class Pawn extends Chesspiece {
   }
   update() {
     if (this.isAlive) {
+      super.update();
       this.clearPossiblePositions();
       this.fetchPossiblePositions();
+      // Pawn Promotion code
       if (this.curPosY == this.posY + (numSquares - 2)*this.direction) {
         this.needsPromotion = true;
       }
@@ -208,8 +222,11 @@ class Rook extends Chesspiece {
     }
   }
   update() {
-    this.clearPossiblePositions();
-    this.fetchPossiblePositions();
+    if (this.isAlive) {
+      super.update();
+      this.clearPossiblePositions();
+      this.fetchPossiblePositions();
+    }
   }
 }
 
@@ -253,8 +270,11 @@ class Bishop extends Chesspiece {
     }
   }
   update() {
-    this.clearPossiblePositions();
-    this.fetchPossiblePositions();
+    if (this.isAlive) {
+      super.update();
+      this.clearPossiblePositions();
+      this.fetchPossiblePositions();
+    }
   }
 }
 
@@ -286,8 +306,11 @@ class Knight extends Chesspiece {
     this.appendMove(-2, -1, false);
   }
   update() {
-    this.clearPossiblePositions();
-    this.fetchPossiblePositions();
+    if (this.isAlive) {
+      super.update();
+      this.clearPossiblePositions();
+      this.fetchPossiblePositions();
+    }
   }
 }
 
@@ -366,8 +389,11 @@ class Queen extends Chesspiece {
     }
   }
   update() {
-    this.clearPossiblePositions();
-    this.fetchPossiblePositions();
+    if (this.isAlive) {
+      super.update();
+      this.clearPossiblePositions();
+      this.fetchPossiblePositions();
+    }
   }
 }
 
@@ -399,8 +425,11 @@ class King extends Chesspiece {
     this.appendMove(1, 0, true);
   }
   update() {
-    this.clearPossiblePositions();
-    this.fetchPossiblePositions();
+    if (this.isAlive) {
+      super.update();
+      this.clearPossiblePositions();
+      this.fetchPossiblePositions();
+    }
   }
 }
 
@@ -459,6 +488,7 @@ class ChessBoard {
     this.allChesspieces.push(...this.oppChesspieces);
     this.grabbed = null;
     this.grabbedPiece = null;
+    this.turn = 0;
   }
   notifyAttackFromGrabbedPiece() {
     let isKilled;
@@ -498,6 +528,12 @@ class ChessBoard {
       }
     }
   }
+  flipTurn() {
+    this.turn = 1 - this.turn;
+  }
+  isTurn(piece) {
+    return this.turn == piece.id%2;
+  }
 }
 
 function setup() {
@@ -522,38 +558,44 @@ function mousePressed() {
         centerY = piece.curPosY * sizeY + radius;
         d = dist(mouseX, mouseY, centerX, centerY);
         if (d < radius) {
-          print(piece);
           cb.grabbed = true;
           cb.grabbedPiece = piece;
           if (cb.grabbedPiece.isGrabbed != true) {
-            cb.grabbedPiece.prevPosX = cb.grabbedPiece.curPosX;
-            cb.grabbedPiece.prevPosY = cb.grabbedPiece.curPosY;
+            cb.grabbedPiece.grabPosX = cb.grabbedPiece.curPosX;
+            cb.grabbedPiece.grabPosY = cb.grabbedPiece.curPosY;
             cb.grabbedPiece.isGrabbed = true;
+            cb.grabbedPiece.update();
             break;
           }
         }
       }
     }
   }
-  print(playGrid);
 }
 
 function mouseReleased() {
-  if (cb.grabbed) {
-    if (false === cb.grabbedPiece.validateMove()) {
+  if (cb.grabbed && cb.grabbedPiece) {
+    cb.grabbedPiece.prevPosX = cb.grabbedPiece.grabPosX;
+    cb.grabbedPiece.prevPosY = cb.grabbedPiece.grabPosY;
+    if (false === cb.grabbedPiece.validateMove(cb.turn)) {
       cb.grabbedPiece.resetPosition();
     } else {
       // notify the occupant if any
       cb.notifyAttackFromGrabbedPiece();
       // transition
       cb.grabbedPiece.markOnGrid();
-      // update for promotions, if any
-      cb.update();
     }
-    cb.grabbed = false;
-    cb.grabbedPiece.isGrabbed = false;
-    cb.grabbedPiece = null;
   }
+  var shouldFlipTurn = cb.grabbedPiece.shouldFlipTurn();
+  if (shouldFlipTurn) {
+    cb.flipTurn();
+  }
+  cb.grabbed = false;
+  cb.grabbedPiece.isGrabbed = false;
+  cb.grabbedPiece.update();
+  // update for promotions, if any
+  cb.update();
+  cb.grabbedPiece = null;
 }
 
 function mouseDragged() {
@@ -584,16 +626,19 @@ function drawBoard() {
       rect(positionX, positionY, sizeX, sizeY);
     }
   }
-  if (cb.grabbed) {
-    cb.grabbedPiece.update();
+  /*
+   * I'd like to avoid any foul play in future
+   * regarding cb.grabbedPiece, so additional checks.
+   */
+  if (cb.grabbed && cb.grabbedPiece && cb.isTurn(cb.grabbedPiece)) {
     for (var a = 0; a < cb.grabbedPiece.posXArray.length; a++) {
       /*
        * I thought of storing these things but considering it's a
        * one time job and that browser memory is precious, I vetoed
        * against it. I can take browser render time but not memory.
        */
-      positionX = (cb.grabbedPiece.prevPosX + cb.grabbedPiece.posXArray[a])*sizeX;
-      positionY = (cb.grabbedPiece.prevPosY + cb.grabbedPiece.posYArray[a])*sizeY;
+      positionX = (cb.grabbedPiece.grabPosX + cb.grabbedPiece.posXArray[a])*sizeX;
+      positionY = (cb.grabbedPiece.grabPosY + cb.grabbedPiece.posYArray[a])*sizeY;
       if (cb.grabbedPiece.attackArray[a]) {
         fill(128, 0, 0);
       } else {
