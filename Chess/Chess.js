@@ -1,31 +1,13 @@
 canvasSizeX = 560;
 canvasSizeY = canvasSizeX;
-numSquares = 8;
-playGrid = Array(numSquares).fill().map(() => Array(numSquares).fill(0));
 black = 100;
 white = 240;
 gr = (0, 128, 0);
 
-sizeX = canvasSizeX / numSquares;
-sizeY = canvasSizeY / numSquares;
-
-function isValid(x) {
-  return (0 <= x && x <= numSquares);
-}
-
-function isFilled(x, y) {
-  if (isValid(x) &&
-    isValid(y) &&
-    playGrid &&
-    playGrid[x] &&
-    playGrid[x][y] != 0) {
-    return true;
-  }
-  return false;
-}
+sizeX = canvasSizeX / 8;
+sizeY = canvasSizeY / 8;
 
 let bKi, bQu, wKi, wQu, bRo, wRo, bBi, wBi, bKn, wKn, bPa, wPa, cb;
-
 function preload() {
   bKi = loadImage('images/bKi.png');
   bQu = loadImage('images/bQu.png');
@@ -42,7 +24,7 @@ function preload() {
 }
 
 class Chesspiece {
-  constructor(initPosX, initPosY, pieceColor) {
+  constructor(initPosX, initPosY, pieceColor, cb) {
     this.posX = initPosX;
     this.posY = initPosY;
     this.pieceColor = pieceColor;
@@ -57,12 +39,44 @@ class Chesspiece {
     this.isAlive = true;
     this.isMoved = false;
   }
+  updateCurrentPosition() {
+    var radius = (sizeX * 1.0 / 2);
+    this.curPosX = round((mouseX - radius) * 1.0 / (sizeX));
+    this.curPosY = round((mouseY - radius) * 1.0 / (sizeY));
+  }
+  checkAndReset() {
+    if (this.curPosX < 0 || this.curPosX > cb.numSquares - 1 ||
+      this.curPosY < 0 || this.curPosY > cb.numSquares - 1) {
+      this.resetPosition();
+    }
+  }
+  markPreviousPosition() {
+    this.prevPosX = this.grabPosX;
+    this.prevPosY = this.grabPosY;
+  }
+  grab() {
+    this.grabPosX = this.curPosX;
+    this.grabPosY = this.curPosY;
+    this.isGrabbed = true;
+  }
+  isGrabbable() {
+    if (this.isAlive) {
+      var radius = (sizeX * 1.0 / 2);
+      var centerX = this.curPosX * sizeX + radius;
+      var centerY = this.curPosY * sizeY + radius;
+      var d = dist(mouseX, mouseY, centerX, centerY);
+      if (d < radius) {
+        return true;
+      }
+    }
+    return false;
+  }
   markOnGrid() {
     // mark the current position
-    playGrid[this.curPosX][this.curPosY] = this.id;
+    cb.playGrid[this.curPosX][this.curPosY] = this.id;
     if (this.prevPosX !== this.curPosX || this.prevPosY !== this.curPosY) {
       // empty out the previous position
-      playGrid[this.prevPosX][this.prevPosY] = 0;
+      cb.playGrid[this.prevPosX][this.prevPosY] = 0;
       // actually used for only King and Rook and this happened to be LCA.
       this.isMoved = true;
     }
@@ -98,18 +112,18 @@ class Chesspiece {
       reqY = this.prevPosY;
     }
 
-    if (isValid(reqX + x) &&
-      isValid(reqY + y)) {
+    if (cb.isValid(reqX + x) &&
+      cb.isValid(reqY + y)) {
       if (cond &&
-        isFilled(reqX + x, reqY + y) &&
-        (this.id%2)!=(playGrid[reqX + x][reqY + y]%2)) {
+        cb.isFilled(reqX + x, reqY + y) &&
+        (this.id%2)!=(cb.playGrid[reqX + x][reqY + y]%2)) {
         this.posXArray.push(x);
         this.posYArray.push(y);
         this.attackArray.push(cond);
         return true;
       }
       if (false === cond &&
-        false === isFilled(reqX + x, reqY + y)) {
+        false === cb.isFilled(reqX + x, reqY + y)) {
         this.posXArray.push(x);
         this.posYArray.push(y);
         this.attackArray.push(cond);
@@ -138,9 +152,9 @@ class Chesspiece {
 }
 
 class Pawn extends Chesspiece {
-  constructor(initPosX, initPosY, pieceColor) {
-    super(initPosX, initPosY, pieceColor);
-    this.direction = (numSquares - this.posY) < 4 ? -1 : 1;
+  constructor(initPosX, initPosY, pieceColor, cb) {
+    super(initPosX, initPosY, pieceColor, cb);
+    this.direction = (cb.numSquares - this.posY) < 4 ? -1 : 1;
     this.image = pieceColor ? bPa : wPa;
     this.id = this.pieceColor ? 1 : 2;
     this.needsPromotion = false;
@@ -175,7 +189,7 @@ class Pawn extends Chesspiece {
       this.clearPossiblePositions();
       this.fetchPossiblePositions();
       // Pawn Promotion code
-      if (this.curPosY == this.posY + (numSquares - 2)*this.direction) {
+      if (this.curPosY == this.posY + (cb.numSquares - 2)*this.direction) {
         this.needsPromotion = true;
       }
     }
@@ -183,8 +197,8 @@ class Pawn extends Chesspiece {
 }
 
 class Rook extends Chesspiece {
-  constructor(initPosX, initPosY, pieceColor) {
-    super(initPosX, initPosY, pieceColor);
+  constructor(initPosX, initPosY, pieceColor, cb) {
+    super(initPosX, initPosY, pieceColor, cb);
     this.image = pieceColor ? bRo : wRo;
     this.id = this.pieceColor ? 3 : 4;
     this.markOnGrid();
@@ -192,28 +206,28 @@ class Rook extends Chesspiece {
   }
   fetchPossiblePositions() {
     var isVacant;
-    for (var i = 1; i < numSquares; i++) {
+    for (var i = 1; i < cb.numSquares; i++) {
       isVacant = this.appendMove(0, i, false);
       if (isVacant === false) {
         this.appendMove(0, i, true);
         break;
       }
     }
-    for (i = 1; i < numSquares; i++) {
+    for (i = 1; i < cb.numSquares; i++) {
       isVacant = this.appendMove(0, -i, false);
       if (isVacant === false) {
         this.appendMove(0, -i, true);
         break;
       }
     }
-    for (i = 1; i < numSquares; i++) {
+    for (i = 1; i < cb.numSquares; i++) {
       isVacant = this.appendMove(i, 0, false);
       if (isVacant === false) {
         this.appendMove(0, i, true);
         break;
       }
     }
-    for (i = 1; i < numSquares; i++) {
+    for (i = 1; i < cb.numSquares; i++) {
       isVacant = this.appendMove(-i, 0, false);
       if (isVacant === false) {
         this.appendMove(0, -i, true);
@@ -240,28 +254,28 @@ class Bishop extends Chesspiece {
   }
   fetchPossiblePositions() {
     var isVacant;
-    for (var i = 1; i < numSquares; i++) {
+    for (var i = 1; i < cb.numSquares; i++) {
       isVacant = this.appendMove(i, i, false);
       if (isVacant === false) {
         this.appendMove(i, i, true);
         break;
       }
     }
-    for (i = 1; i < numSquares; i++) {
+    for (i = 1; i < cb.numSquares; i++) {
       isVacant = this.appendMove(-i, -i, false);
       if (isVacant === false) {
         this.appendMove(-i, -i, true);
         break;
       }
     }
-    for (i = 1; i < numSquares; i++) {
+    for (i = 1; i < cb.numSquares; i++) {
       isVacant = this.appendMove(-i, i, false);
       if (isVacant === false) {
         this.appendMove(-i, i, true);
         break;
       }
     }
-    for (i = 1; i < numSquares; i++) {
+    for (i = 1; i < cb.numSquares; i++) {
       isVacant = this.appendMove(i, -i, false);
       if (isVacant === false) {
         this.appendMove(i, -i, true);
@@ -279,8 +293,8 @@ class Bishop extends Chesspiece {
 }
 
 class Knight extends Chesspiece {
-  constructor(initPosX, initPosY, pieceColor) {
-    super(initPosX, initPosY, pieceColor);
+  constructor(initPosX, initPosY, pieceColor, cb) {
+    super(initPosX, initPosY, pieceColor, cb);
     this.image = pieceColor ? bKn : wKn;
     this.id = this.pieceColor ? 7 : 8;
     this.markOnGrid();
@@ -315,8 +329,8 @@ class Knight extends Chesspiece {
 }
 
 class Queen extends Chesspiece {
-  constructor(initPosX, initPosY, pieceColor) {
-    super(initPosX, initPosY, pieceColor);
+  constructor(initPosX, initPosY, pieceColor, cb) {
+    super(initPosX, initPosY, pieceColor, cb);
     this.image = pieceColor ? bQu : wQu;
     this.id = this.pieceColor ? 9 : 10;
     this.markOnGrid();
@@ -331,56 +345,56 @@ class Queen extends Chesspiece {
    */
   fetchPossiblePositions() {
     var isVacant;
-    for (var i = 1; i < numSquares; i++) {
+    for (var i = 1; i < cb.numSquares; i++) {
       isVacant = this.appendMove(0, i, false);
       if (isVacant === false) {
         this.appendMove(0, i, true);
         break;
       }
     }
-    for (i = 1; i < numSquares; i++) {
+    for (i = 1; i < cb.numSquares; i++) {
       isVacant = this.appendMove(0, -i, false);
       if (isVacant === false) {
         this.appendMove(0, -i, true);
         break;
       }
     }
-    for (i = 1; i < numSquares; i++) {
+    for (i = 1; i < cb.numSquares; i++) {
       isVacant = this.appendMove(i, 0, false);
       if (isVacant === false) {
         this.appendMove(i, 0, true);
         break;
       }
     }
-    for (i = 1; i < numSquares; i++) {
+    for (i = 1; i < cb.numSquares; i++) {
       isVacant = this.appendMove(-i, 0, false);
       if (isVacant === false) {
         this.appendMove(-i, 0, true);
         break;
       }
     }
-    for (i = 1; i < numSquares; i++) {
+    for (i = 1; i < cb.numSquares; i++) {
       isVacant = this.appendMove(i, i, false);
       if (isVacant === false) {
         this.appendMove(i, i, true);
         break;
       }
     }
-    for (i = 1; i < numSquares; i++) {
+    for (i = 1; i < cb.numSquares; i++) {
       isVacant = this.appendMove(-i, -i, false);
       if (isVacant === false) {
         this.appendMove(-i, -i, true);
         break;
       }
     }
-    for (i = 1; i < numSquares; i++) {
+    for (i = 1; i < cb.numSquares; i++) {
       isVacant = this.appendMove(-i, i, false);
       if (isVacant === false) {
         this.appendMove(-i, i, true);
         break;
       }
     }
-    for (i = 1; i < numSquares; i++) {
+    for (i = 1; i < cb.numSquares; i++) {
       isVacant = this.appendMove(i, -i, false);
       if (isVacant === false) {
         this.appendMove(i, -i, true);
@@ -398,8 +412,8 @@ class Queen extends Chesspiece {
 }
 
 class King extends Chesspiece {
-  constructor(initPosX, initPosY, pieceColor) {
-    super(initPosX, initPosY, pieceColor);
+  constructor(initPosX, initPosY, pieceColor, cb) {
+    super(initPosX, initPosY, pieceColor, cb);
     this.image = pieceColor ? bKi : wKi;
     this.id = this.pieceColor ? 11 : 12;
     this.markOnGrid();
@@ -435,31 +449,35 @@ class King extends Chesspiece {
 
 class ChessBoard {
   constructor() {
+    this.numSquares = 8;
+    this.playGrid = Array(this.numSquares).fill().map(() => Array(this.numSquares).fill(0));
+  }
+  init() {
     // 0 is for white and 1 for black
-    this.myLeftRook = new Rook(0, 7, 0);
-    this.myRightRook = new Rook(7, 7, 0);
-    this.myleftKnight = new Knight(1, 7, 0);
-    this.myRightKnight = new Knight(6, 7, 0);
-    this.myLeftBishop = new Bishop(2, 7, 0);
-    this.myRightBishop = new Bishop(5, 7, 0);
-    this.myQueen = new Queen(3, 7, 0);
-    this.myKing = new King(4, 7, 0);
+    this.myLeftRook = new Rook(0, 7, 0, this);
+    this.myRightRook = new Rook(7, 7, 0, this);
+    this.myleftKnight = new Knight(1, 7, 0, this);
+    this.myRightKnight = new Knight(6, 7, 0, this);
+    this.myLeftBishop = new Bishop(2, 7, 0, this);
+    this.myRightBishop = new Bishop(5, 7, 0, this);
+    this.myQueen = new Queen(3, 7, 0, this);
+    this.myKing = new King(4, 7, 0, this);
     this.myPawns = [];
     for (var i = 0; i < 8; i++) {
-      this.myPawns.push(new Pawn(i, 6, 0));
+      this.myPawns.push(new Pawn(i, 6, 0, this));
     }
 
-    this.oppLeftRook = new Rook(0, 0, 1);
-    this.oppRightRook = new Rook(7, 0, 1);
-    this.oppleftKnight = new Knight(1, 0, 1);
-    this.oppRightKnight = new Knight(6, 0, 1);
-    this.oppLeftBishop = new Bishop(2, 0, 1);
-    this.oppRightBishop = new Bishop(5, 0, 1);
-    this.oppQueen = new Queen(3, 0, 1);
-    this.oppKing = new King(4, 0, 1);
+    this.oppLeftRook = new Rook(0, 0, 1, this);
+    this.oppRightRook = new Rook(7, 0, 1, this);
+    this.oppleftKnight = new Knight(1, 0, 1, this);
+    this.oppRightKnight = new Knight(6, 0, 1, this);
+    this.oppLeftBishop = new Bishop(2, 0, 1, this);
+    this.oppRightBishop = new Bishop(5, 0, 1, this);
+    this.oppQueen = new Queen(3, 0, 1, this);
+    this.oppKing = new King(4, 0, 1, this);
     this.oppPawns = [];
     for (i = 0; i < 8; i++) {
-      this.oppPawns.push(new Pawn(i, 1, 1));
+      this.oppPawns.push(new Pawn(i, 1, 1, this));
     }
 
     this.myChesspieces = [this.myLeftRook, 
@@ -534,11 +552,25 @@ class ChessBoard {
   isTurn(piece) {
     return this.turn == piece.id%2;
   }
+  isValid(x) {
+    return (0 <= x && x <= cb.numSquares);
+  }
+  isFilled(x, y) {
+    if (this.isValid(x) &&
+      this.isValid(y) &&
+      this.playGrid &&
+      this.playGrid[x] &&
+      this.playGrid[x][y] != 0) {
+      return true;
+    }
+    return false;
+  }
 }
 
 function setup() {
   createCanvas(canvasSizeX, canvasSizeY);
   cb = new ChessBoard();
+  cb.init();
 }
 
 function windowResized() {
@@ -546,27 +578,19 @@ function windowResized() {
 }
 
 function draw() {
-  drawBoard();
+  drawGame();
 }
 
 function mousePressed() {
   if (cb.grabbed != true) {
     for (var piece of cb.allChesspieces) {
-      if (piece.isAlive) {
-        radius = (sizeX * 1.0 / 2);
-        centerX = piece.curPosX * sizeX + radius;
-        centerY = piece.curPosY * sizeY + radius;
-        d = dist(mouseX, mouseY, centerX, centerY);
-        if (d < radius) {
-          cb.grabbed = true;
-          cb.grabbedPiece = piece;
-          if (cb.grabbedPiece.isGrabbed != true) {
-            cb.grabbedPiece.grabPosX = cb.grabbedPiece.curPosX;
-            cb.grabbedPiece.grabPosY = cb.grabbedPiece.curPosY;
-            cb.grabbedPiece.isGrabbed = true;
-            cb.grabbedPiece.update();
-            break;
-          }
+      if (piece.isGrabbable()) {
+        cb.grabbed = true;
+        cb.grabbedPiece = piece;
+        if (cb.grabbedPiece.isGrabbed != true) {
+          cb.grabbedPiece.grab();
+          cb.grabbedPiece.update();
+          break;
         }
       }
     }
@@ -575,8 +599,7 @@ function mousePressed() {
 
 function mouseReleased() {
   if (cb.grabbed && cb.grabbedPiece) {
-    cb.grabbedPiece.prevPosX = cb.grabbedPiece.grabPosX;
-    cb.grabbedPiece.prevPosY = cb.grabbedPiece.grabPosY;
+    cb.grabbedPiece.markPreviousPosition();
     if (false === cb.grabbedPiece.validateMove(cb.turn)) {
       cb.grabbedPiece.resetPosition();
     } else {
@@ -586,7 +609,7 @@ function mouseReleased() {
       cb.grabbedPiece.markOnGrid();
     }
   }
-  var shouldFlipTurn = cb.grabbedPiece.shouldFlipTurn();
+  var shouldFlipTurn = cb.grabbedPiece && cb.grabbedPiece.shouldFlipTurn();
   if (shouldFlipTurn) {
     cb.flipTurn();
   }
@@ -599,20 +622,15 @@ function mouseReleased() {
 }
 
 function mouseDragged() {
-  if (cb.grabbed) {
-    cb.grabbedPiece.curPosX = round((mouseX - radius) * 1.0 / (sizeX));
-    cb.grabbedPiece.curPosY = round((mouseY - radius) * 1.0 / (sizeY));
-    if (cb.grabbedPiece.curPosX < 0 || cb.grabbedPiece.curPosX > numSquares - 1 ||
-      cb.grabbedPiece.curPosY < 0 || cb.grabbedPiece.curPosY > numSquares - 1) {
-      cb.grabbedPiece.resetPosition();
-    }
+  if (cb.grabbed && cb.grabbedPiece) {
+    cb.grabbedPiece.updateCurrentPosition();
+    cb.grabbedPiece.checkAndReset();
   }
 }
 
-// Function just for drawing the board
-function drawBoard() {
-  for (y = 0; y < numSquares; y += 1) {
-    for (x = 0; x < numSquares; x += 1) {
+function drawChessBoard() {
+  for (y = 0; y < cb.numSquares; y += 1) {
+    for (x = 0; x < cb.numSquares; x += 1) {
       // Always put white on the right when arranging
       if ((x + y) % 2 == 0) {
         fill(white);
@@ -626,6 +644,9 @@ function drawBoard() {
       rect(positionX, positionY, sizeX, sizeY);
     }
   }
+}
+
+function drawPossiblePositions() {
   /*
    * I'd like to avoid any foul play in future
    * regarding cb.grabbedPiece, so additional checks.
@@ -647,10 +668,20 @@ function drawBoard() {
       rect(positionX, positionY, sizeX, sizeY);
     }
   }
+}
 
+function drawPieces() {
   for (var cp of cb.allChesspieces) {
     if (cp.isAlive) {
       image(cp.image, cp.curPosX * sizeX, cp.curPosY * sizeY, 60, 60);
     }
   }
+}
+
+// Function just for drawing the board
+function drawGame() {
+  // Paint in order of Z axis inward out.
+  drawChessBoard();
+  drawPossiblePositions();
+  drawPieces();
 }
