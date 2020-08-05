@@ -47,7 +47,6 @@ class Chesspiece {
         var curMouseX = (this.sketch.mouseX);
         var curMouseY = (this.sketch.mouseY);
         var d = this.sketch.dist(curMouseX, curMouseY, centerX, centerY);
-        console.log(curMouseX, curMouseY,radius)
         if (d < radius) {
           return true;
         }
