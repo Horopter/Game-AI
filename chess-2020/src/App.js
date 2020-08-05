@@ -117,6 +117,7 @@ export default class App extends Component {
       }
 
       p.drawChessBoard = function () {
+        p.clear()
         for (var y = 0; y < cb.numSquares; y += 1) {
           for (var x = 0; x < cb.numSquares; x += 1) {
             // Always put Constants.white on the right when arranging
