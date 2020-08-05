@@ -11,8 +11,8 @@ var n1, c1, pos1, n2, c2, pos2;
 
 function logAction(msg, piece, action) {
   if (piece) {
-    var x = "ABCDEFG";
-    var y = "1234567";
+    var x = "ABCDEFGH";
+    var y = "12345678";
     if (action === 'p') {
       n1 = piece.constructor.name;
       c1 = piece.pieceColor ? "BLACK" : "WHITE";
@@ -179,7 +179,12 @@ export default class App extends Component {
 
       p.drawPieces = function () {
         for (var cp of cb.allChesspieces) {
-          if (cp.isAlive) {
+          if (cp.isAlive && !cb.isTurn(cp)) {
+            p.image(p.getImage(cp), cp.curPosX * Constants.sizeX, cp.curPosY * Constants.sizeY, 60, 60);
+          }
+        }
+        for (cp of cb.allChesspieces) {
+          if (cp.isAlive && cb.isTurn(cp)) {
             p.image(p.getImage(cp), cp.curPosX * Constants.sizeX, cp.curPosY * Constants.sizeY, 60, 60);
           }
         }
