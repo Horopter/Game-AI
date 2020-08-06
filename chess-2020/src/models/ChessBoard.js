@@ -81,7 +81,7 @@ class ChessBoard {
       for (pawn of this.myPawns) {
         if (pawn.isAlive && pawn.needsPromotion) {
           pawn.isAlive = false;
-          x = new Queen(pawn.curPosX, pawn.curPosY, pawn.pieceColor);
+          x = new Queen(pawn.curPosX, pawn.curPosY, pawn.pieceColor,this);
           if (pawn.pieceColor === 0) {
             this.myChesspieces.push(x);
           } else {
@@ -94,7 +94,7 @@ class ChessBoard {
       for (pawn of this.oppPawns) {
         if (pawn.isAlive && pawn.needsPromotion) {
           pawn.isAlive = false;
-          x = new Queen(pawn.curPosX, pawn.curPosY, pawn.pieceColor);
+          x = new Queen(pawn.curPosX, pawn.curPosY, pawn.pieceColor,this);
           if (pawn.pieceColor === 0) {
             this.myChesspieces.push(x);
           } else {
@@ -112,7 +112,7 @@ class ChessBoard {
       return this.turn === piece.id%2;
     }
     isValid(x) {
-      return (0 <= x && x <= this.numSquares);
+      return (0 <= x && x < this.numSquares);
     }
     isFilled(x, y) {
       if (this.isValid(x) &&

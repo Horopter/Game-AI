@@ -17,13 +17,14 @@ function logAction(msg, piece, action) {
       n1 = piece.constructor.name;
       c1 = piece.pieceColor ? "BLACK" : "WHITE";
       pos1 = x[piece.curPosX] + y[piece.curPosY];
+      console.log(msg, pos1)
     } else if (action === 'r') {
       n2 = piece.constructor.name;
       c2 = piece.pieceColor ? "BLACK" : "WHITE";
       pos2 = x[piece.curPosX] + y[piece.curPosY];
-    }
-    if (n1 === n2 && c1 === c2 && pos1 !== pos2) {
-      console.log(msg, n1, c1, pos1, pos2);
+      if (n1 === n2 && c1 === c2 && pos1 !== pos2) {
+        console.log(msg, n1, c1, pos1, pos2);
+      }
       n1 = null;
       n2 = null;
       c1 = null;
@@ -215,6 +216,7 @@ export default class App extends Component {
 
 
     })
+
     this.lostPieces = new p5(p => {
       p.getImage = function (cp) {
         var type = cp.constructor.name
@@ -253,7 +255,7 @@ export default class App extends Component {
           }
         }
         if (cb && cb.allChesspieces) {
-          var deadPieces = cb.allChesspieces.filter((x) => !x.isAlive);
+          var deadPieces = cb.allChesspieces.filter((x) => !x.isAlive && !x.needsPromotion);
           for (i = 0; i < Constants.numSquares; i++) {
             for (j = 0; j < 4; j++) {
               if (i * 8 + j < deadPieces.length) {

@@ -9,6 +9,7 @@
     "p5": "^1.1.9",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
+    "react-modal": "^3.11.2",
     "react-scripts": "3.4.1"
   },
   "scripts": {
@@ -35,6 +36,6 @@
   "description": "This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).",
   "main": "index.js",
   "devDependencies": {},
-  "author": "",
+  "author": "Santosh Desai",
   "license": "ISC"
 }
