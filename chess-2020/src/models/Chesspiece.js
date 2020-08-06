@@ -20,8 +20,8 @@ class Chesspiece {
     var radius = (Constants.sizeX * 1.0 / 2);
     var curMouseX = this.sketch.mouseX;
     var curMouseY = this.sketch.mouseY;
-    this.curPosX = this.sketch.round((curMouseX - radius) * 1.0 / (Constants.sizeX));
-    this.curPosY = this.sketch.round((curMouseY - radius) * 1.0 / (Constants.sizeY));
+    this.curPosX = this.sketch.round((curMouseX - radius - Constants.drawOffsetX) * 1.0 / (Constants.sizeX));
+    this.curPosY = this.sketch.round((curMouseY - radius - Constants.drawOffsetY) * 1.0 / (Constants.sizeY));
   }
   checkAndReset() {
     if (this.curPosX < 0 || this.curPosX > this.cb.numSquares - 1 ||
@@ -45,8 +45,8 @@ class Chesspiece {
   isGrabbable() {
     if (this.isAlive) {
       var radius = (Constants.sizeX * 1.0 / 2);
-      var centerX = this.curPosX * Constants.sizeX + radius;
-      var centerY = this.curPosY * Constants.sizeY + radius;
+      var centerX = this.curPosX * Constants.sizeX + Constants.drawOffsetX + radius;
+      var centerY = this.curPosY * Constants.sizeY + Constants.drawOffsetY + radius;
       var curMouseX = (this.sketch.mouseX);
       var curMouseY = (this.sketch.mouseY);
       var d = this.sketch.dist(curMouseX, curMouseY, centerX, centerY);
@@ -117,7 +117,7 @@ class Chesspiece {
         return true;
       }
     }
-    return false;
+    return !this.cb.isFilled(reqX + x, reqY + y);
   }
   checkAttackAndSelfDestruct(attacker) {
     if (this !== attacker && this.isAlive &&
@@ -133,8 +133,8 @@ class Chesspiece {
     this.grabPosY = this.curPosY;
   }
   shouldFlipTurn() {
-    return (this.curPosX !== this.prevPosX ||
-      this.curPosY !== this.prevPosY);
+    return (this.curPosX !== this.grabPosX ||
+      this.curPosY !== this.grabPosY);
   }
 }
 

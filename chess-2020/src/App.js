@@ -38,9 +38,9 @@ export default class App extends Component {
   constructor() {
     console.log("Started.")
     super()
-    this.sketch = new p5(p => {
+    this.game = new p5(p => {
       p.setup = function () {
-        p.createCanvas(Constants.canvasSizeX, Constants.canvasSizeY)
+        p.createCanvas(Constants.canvasSizeX, Constants.canvasSizeY).parent('chessboard')
         cb = new ChessBoard(p)
         cb.init()
         console.log("Done with Setup")
@@ -118,18 +118,30 @@ export default class App extends Component {
 
       p.drawChessBoard = function () {
         p.clear()
-        for (var y = 0; y < cb.numSquares; y += 1) {
-          for (var x = 0; x < cb.numSquares; x += 1) {
+
+        for (var y = 0; y < Constants.numSquares; y += 1) {
+          for (var x = 0; x < Constants.numSquares; x += 1) {
             // Always put Constants.white on the right when arranging
             if ((x + y) % 2 === 0) {
               p.fill(Constants.white);
             } else {
               p.fill(Constants.black);
             }
-            let positionX = x * Constants.sizeX;
-            let positionY = y * Constants.sizeY;
+            let positionX = x * Constants.sizeX + Constants.drawOffsetX;
+            let positionY = y * Constants.sizeY + Constants.drawOffsetY;
             p.rect(positionX, positionY, Constants.sizeX, Constants.sizeY);
           }
+        }
+
+        p.textSize(15);
+        p.fill(Constants.red)
+        for (let x = 1; x <= Constants.numSquares; x++) {
+          let dx = x * Constants.sizeX;
+          let dy = x * Constants.sizeY;
+          p.text(Constants.titleX[x - 1], dx, 2 * Constants.drawOffsetX / 5)
+          p.text(Constants.titleX[x - 1], dx, Constants.canvasSizeY - 2 * Constants.drawOffsetY / 5)
+          p.text(Constants.titleY[x - 1], 2 * Constants.drawOffsetY / 5, dy)
+          p.text(Constants.titleY[x - 1], Constants.canvasSizeX - 2 * Constants.drawOffsetX / 5, dy)
         }
       }
 
@@ -145,8 +157,8 @@ export default class App extends Component {
              * one time job and that browser memory is precious, I vetoed
              * against it. I can take browser render time but not memory.
              */
-            let positionX = (cb.grabbedPiece.grabPosX + cb.grabbedPiece.posXArray[a]) * Constants.sizeX;
-            let positionY = (cb.grabbedPiece.grabPosY + cb.grabbedPiece.posYArray[a]) * Constants.sizeY;
+            let positionX = (cb.grabbedPiece.grabPosX + cb.grabbedPiece.posXArray[a]) * Constants.sizeX + Constants.drawOffsetX;
+            let positionY = (cb.grabbedPiece.grabPosY + cb.grabbedPiece.posYArray[a]) * Constants.sizeY + Constants.drawOffsetY;
             if (cb.grabbedPiece.attackArray[a]) {
               p.fill(128, 0, 0);
             } else {
@@ -179,14 +191,15 @@ export default class App extends Component {
       }
 
       p.drawPieces = function () {
+
         for (var cp of cb.allChesspieces) {
           if (cp.isAlive && !cb.isTurn(cp)) {
-            p.image(p.getImage(cp), cp.curPosX * Constants.sizeX, cp.curPosY * Constants.sizeY, 60, 60);
+            p.image(p.getImage(cp), cp.curPosX * Constants.sizeX + Constants.drawOffsetX, cp.curPosY * Constants.sizeY + Constants.drawOffsetY, 60, 60);
           }
         }
         for (cp of cb.allChesspieces) {
           if (cp.isAlive && cb.isTurn(cp)) {
-            p.image(p.getImage(cp), cp.curPosX * Constants.sizeX, cp.curPosY * Constants.sizeY, 60, 60);
+            p.image(p.getImage(cp), cp.curPosX * Constants.sizeY + Constants.drawOffsetX, cp.curPosY * Constants.sizeY + Constants.drawOffsetY, 60, 60);
           }
         }
       }
@@ -202,11 +215,67 @@ export default class App extends Component {
 
 
     })
+    this.lostPieces = new p5(p => {
+      p.getImage = function (cp) {
+        var type = cp.constructor.name
+        var color = cp.pieceColor
+        switch (type) {
+          case 'Pawn':
+            return color ? bPa : wPa;
+          case 'Rook':
+            return color ? bRo : wRo;
+          case 'Bishop':
+            return color ? bBi : wBi;
+          case 'Knight':
+            return color ? bKn : wKn;
+          case 'Queen':
+            return color ? bQu : wQu;
+          case 'King':
+            return color ? bKi : wKi;
+          default:
+            return null;
+        }
+      }
+      p.setup = function () {
+        p.createCanvas(Constants.lostCanvasSizeX, Constants.lostCanvasSizeY).parent('lostpieces')
+      }
+      p.draw = function () {
+        //ToDo : Refactor
+        p.clear()
+        for (var i = 0; i < Constants.numSquares; i++) {
+          for (var j = 0; j < 4; j++) {
+            if ((i + j) % 2 === 0) {
+              p.fill(0, 128, 0);
+            } else {
+              p.fill(0, 0, 128);
+            }
+            p.rect(i * 70, j * 70, i * 70 + 70, j * 70 + 70)
+          }
+        }
+        if (cb && cb.allChesspieces) {
+          var deadPieces = cb.allChesspieces.filter((x) => !x.isAlive);
+          for (i = 0; i < Constants.numSquares; i++) {
+            for (j = 0; j < 4; j++) {
+              if (i * 8 + j < deadPieces.length) {
+                var cp = deadPieces[i * 8 + j]
+                if (cp) {
+                  p.image(p.getImage(cp), i * Constants.sizeX, j * Constants.sizeY, 60, 60);
+                }
+              }
+            }
+          }
+        }
+      }
+    })
   }
   render() {
     return (
       <div className="App">
-        <div id='rendertarget'>
+        <div id='chessboard' style={({ margin: '25px', float: 'left' })}>
+
+        </div>
+        <div id='lostpieces' style={({ margin: (25 + Constants.drawOffsetX) + 'px', float: 'left' })}>
+
         </div>
       </div>
     );
