@@ -28,14 +28,14 @@ class Rook extends Chesspiece {
       for (i = 1; i < this.cb.numSquares; i++) {
         isVacant = this.appendMove(i, 0, false);
         if (isVacant === false) {
-          this.appendMove(0, i, true);
+          this.appendMove(i, 0, true);
           break;
         }
       }
       for (i = 1; i < this.cb.numSquares; i++) {
         isVacant = this.appendMove(-i, 0, false);
         if (isVacant === false) {
-          this.appendMove(0, -i, true);
+          this.appendMove(-i, 0, true);
           break;
         }
       }
