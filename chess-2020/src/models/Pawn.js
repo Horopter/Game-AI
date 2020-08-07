@@ -20,7 +20,9 @@ class Pawn extends Chesspiece {
       }
       if (reqY === this.posY) {
         this.appendMove(0, this.direction, false);
-        this.appendMove(0, 2 * this.direction, false);
+        if (false === this.cb.isFilled(this.grabPosX, this.grabPosY + this.direction)) {
+          this.appendMove(0, 2 * this.direction, false);
+        }
       } else {
         this.appendMove(0, this.direction, false);
       }
