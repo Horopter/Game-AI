@@ -28,7 +28,7 @@ class Pawn extends Chesspiece {
       }
     }
     fetchPossibleAttackPositions() {
-      this.appendMove(1, this.direction, true);
+      this.appendMove( 1, this.direction, true);
       this.appendMove(-1, this.direction, true);
     }
     fetchPossiblePositions() {

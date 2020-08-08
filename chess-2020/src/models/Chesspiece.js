@@ -95,8 +95,9 @@ class Chesspiece {
       reqX = this.grabPosX;
       reqY = this.grabPosY;
     } else {
-      reqX = this.prevPosX;
-      reqY = this.prevPosY;
+      // Why?
+      reqX = this.curPosX;
+      reqY = this.curPosY;
     }
 
     if (this.cb.isValid(reqX + x) &&
@@ -129,9 +130,31 @@ class Chesspiece {
     return false;
   }
   update() {
-    this.grabPosX = this.curPosX;
-    this.grabPosY = this.curPosY;
+    //this.grabPosX = this.curPosX;
+    //this.grabPosY = this.curPosY;
   }
+  fetchAttackPositions() {
+    let attackingPositionsX = []
+    let attackingPositionsY = []
+    for (let i = 0; i < this.posXArray.length; i++) {
+      if (this.attackArray[i]) {
+        attackingPositionsX.push(this.curPosX + this.posXArray[i])
+        attackingPositionsY.push(this.curPosY + this.posYArray[i])
+      }
+    }
+    return {"x" : attackingPositionsX, "y" : attackingPositionsY}
+  }
+  
+  fetchNextPositions() {
+    let nextPositionsX = []
+    let nextPositionsY = []
+    for (let i = 0; i < this.posXArray.length; i++) {
+        nextPositionsX.push(this.curPosX + this.posXArray[i])
+        nextPositionsY.push(this.curPosY + this.posYArray[i])
+    }
+    return {"x" : nextPositionsX, "y" : nextPositionsY}
+  }
+
   shouldFlipTurn() {
     return (this.curPosX !== this.grabPosX ||
       this.curPosY !== this.grabPosY);

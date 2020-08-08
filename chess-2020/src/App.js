@@ -11,8 +11,8 @@ var n1, c1, pos1, n2, c2, pos2;
 
 function logAction(msg, piece, action) {
   if (piece) {
-    var x = "ABCDEFGH";
-    var y = "12345678";
+    var x = Constants.titleX;
+    var y = Constants.titleY;
     if (action === 'p') {
       n1 = piece.constructor.name;
       c1 = piece.pieceColor ? "BLACK" : "WHITE";
@@ -67,10 +67,10 @@ export default class App extends Component {
       }
 
       p.mousePressed = function () {
-        console.group("Move");
         if (cb.grabbed !== true) {
           for (var piece of cb.allChesspieces) {
             if (piece.isGrabbable()) {
+              console.group("Move");
               cb.grabbed = true;
               cb.grabbedPiece = piece;
               logAction('Pick : ', cb.grabbedPiece, 'p');
@@ -104,9 +104,9 @@ export default class App extends Component {
           cb.grabbed = false;
           cb.grabbedPiece.isGrabbed = false;
           cb.grabbedPiece.update();
+          cb.grabbedPiece = null;
           // update for promotions, if any
           cb.update();
-          cb.grabbedPiece = null;
         }
       }
 
