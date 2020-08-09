@@ -75,7 +75,7 @@ class ChessBoard {
   }
   checkAndPromotePawn() {
     let pawn, x;
-    let pawns = this.allChesspieces.filter((x) => x.constructor.name === 'Pawn');
+    let pawns = this.allChesspieces.filter((x) => x.constructor.name === 'Pawn' && x.isAlive);
     for (pawn of pawns) {
       if (pawn.isAlive && pawn.needsPromotion) {
         pawn.isAlive = false;
@@ -91,7 +91,7 @@ class ChessBoard {
     //this.updateFEN()
   }
   getKingPosition(color) {
-    return this.allChesspieces.filter((x) => x.constructor.name === 'King' && x.pieceColor === color)
+    return this.allChesspieces.filter((x) => x.isAlive && x.constructor.name === 'King' && x.pieceColor === color)
       .map((y) => [y.curPosX, y.curPosY])[0]
   }
   // There has to be a better way to implement this.
@@ -100,11 +100,11 @@ class ChessBoard {
     //for all chesspieces
     for (var i = 0; i < this.allChesspieces.length; i++) {
       var piece = this.allChesspieces[i]
-      if (piece.pieceColor === color) {
+      if (piece.isAlive && piece.pieceColor === color) {
         piece.update()
         let attacks = piece.fetchAttackPositions()
         for (var j = 0; j < attacks["x"].length; j++) {
-          allAttackPositions.push([piece.curPosX, piece.curPosY, attacks["x"][j], attacks["y"][j], piece.constructor.name])
+          allAttackPositions.push([piece.curPosX, piece.curPosY, attacks["x"][j], attacks["y"][j], piece.constructor.name, piece])
         }
       }
     }
@@ -117,11 +117,11 @@ class ChessBoard {
     //for all chesspieces
     for (var i = 0; i < this.allChesspieces.length; i++) {
       var piece = this.allChesspieces[i]
-      if (piece.pieceColor === color) {
+      if (piece.isAlive && piece.pieceColor === color) {
         piece.update()
         let blocks = piece.fetchNextPositions()
         for (var j = 0; j < blocks["x"].length; j++) {
-          allNextPositions.push([piece.curPosX, piece.curPosY, blocks["x"][j], blocks["y"][j], piece.constructor.name])
+          allNextPositions.push([piece.curPosX, piece.curPosY, blocks["x"][j], blocks["y"][j], piece.constructor.name, piece])
         }
       }
     }
@@ -129,16 +129,16 @@ class ChessBoard {
   }
 
   updateChecks() {
-    console.group("Check for White King")
+    //console.group("Check for White King")
     this.check = null;
     this.checkCount = 0;
     let attackingPieces = []
 
     // update check for white king
     let wk = this.getKingPosition(Constants.WHITEPIECE)
-    console.log("White King : ", wk)
+    //console.log("White King : ", wk)
     let attackers = this.getAllAttackPositions(Constants.BLACKPIECE)
-    console.log("Attackers : ", attackers)
+    //console.log("Attackers : ", attackers)
     for (let i = 0; i < attackers.length; i++) {
       if (attackers[i][2] === wk[0] && attackers[i][3] === wk[1]) {
         this.check = Constants.WHITEPIECE
@@ -147,6 +147,8 @@ class ChessBoard {
       }
     }
     if (this.check !== null) {
+      console.warn("Check for WHITE KING!")
+      //console.group("Checking for checkmates WHITE")
       if (this.updateCheckMates(Constants.WHITEPIECE, attackingPieces)) {
         this.isCheckMate = Constants.WHITEPIECE
         console.log("CheckMate!", this.isCheckMate ? "BLACK" : "WHITE")
@@ -154,20 +156,21 @@ class ChessBoard {
       } else {
         //We found the check
       }
-      console.groupEnd("Check for White King")
+      //console.groupEnd("Checking for checkmates WHITE")
+      //console.groupEnd("Check for White King")
       return
     }
-    console.groupEnd("Check for White King")
-    console.group("Check for Black King")
+    //console.groupEnd("Check for White King")
+    //console.group("Check for Black King")
     this.check = null;
     this.checkCount = 0;
     attackingPieces = []
 
     // update check for black king
     let bk = this.getKingPosition(Constants.BLACKPIECE)
-    console.log("Black King : ", wk)
+    //("Black King : ", wk)
     attackers = this.getAllAttackPositions(Constants.WHITEPIECE)
-    console.log("Attackers : ", attackers)
+    //console.log("Attackers : ", attackers)
     for (let i = 0; i < attackers.length; i++) {
       if (attackers[i][2] === bk[0] && attackers[i][3] === bk[1]) {
         this.check = Constants.BLACKPIECE
@@ -177,164 +180,114 @@ class ChessBoard {
     }
 
     if (this.check !== null) {
+      console.warn("Check for BLACK KING!")
+      //console.group("Checking for checkmates BLACK")
       if (this.updateCheckMates(Constants.WHITEPIECE, attackingPieces)) {
         this.isCheckMate = Constants.WHITEPIECE
         console.log("CheckMate!", this.isCheckMate ? "BLACK" : "WHITE")
       } else {
         //We found the check
       }
-      console.groupEnd("Check for Black King")
+      //console.groupEnd("Checking for checkmates BLACK")
+      //console.groupEnd("Check for Black King")
       return
     }
-    console.groupEnd("Check for Black King")
+    //console.groupEnd("Check for Black King")
   }
 
   updateCheckMates(color, attackers) {
     let isCheckMate = null;
     // get King's next moves (both attack and general moves)
-    let king = this.allChesspieces.filter((x) => x.constructor.name === 'King' && x.pieceColor === color)[0]
+    let king = this.allChesspieces.filter((x) => x.isAlive && x.constructor.name === 'King' && x.pieceColor === color)[0]
     let kingMoves = king.fetchNextPositions()
-    console.log("King :", king, "KingMoves : ", kingMoves, "Color :", color, "Attackers : ", attackers)
+    //console.log("King :", king, "KingMoves : ", kingMoves, "Color :", color, "Attackers : ", attackers)
 
-    // Double Check
-    if (this.checkCount >= 2) {
+    isCheckMate = null;
+    let kingKiller = attackers.filter((x) => x[2] === king.curPosX && x[3] === king.curPosY)
 
-      let isCheckMate = null;
-
-      // For both Single and Double checks
-      // Check if King can capture any attacking piece
-      for (let i = 0; i < attackers.length; i++) {
-        for (let j = 0; j < kingMoves["x"].length; j++) {
-          if (kingMoves["x"][j] === attackers[i][0] &&
-            kingMoves["y"][j] === attackers[i][1]) {
-            isCheckMate = false;
-          }
-        }
-      }
-
-      if (isCheckMate === false) {
-        console.log("King can capture the checker. Count = 2")
-        return false;
-      }
-
-      isCheckMate = null;
-
-      /*
-       * Check if King has any (attacking or non attacking) moves
-       * which are currently NOT under attack.
-       * These moves may come into attack just after taken.
-       */
-      for (let i = 0; i < kingMoves["x"].length; i++) {
-        for (let j = 0; j < attackers.length; j++) {
-          if (kingMoves["x"][j] !== attackers[i][2] &&
-            kingMoves["y"][j] !== attackers[i][3]) {
-            isCheckMate = true;
-          }
-        }
-      }
-
-      if (isCheckMate === null) {
-        console.log("King can escape. Count = 2")
-        return false;
-      }
-
-      /*
-       * For the love of God, someone please capture the piece
-       * Long Live the King!
-       */
-      let defensePositions = this.getAllAttackPositions(king.pieceColor)
-      console.log("Defense : ", defensePositions, "Attacker :", attackers)
-      for (let i = 0; i < defensePositions.length; i++) {
-        for (let j = 0; j < attackers.length; j++) {
-          if (defensePositions[i][2] === attackers[j][0] &&
-              defensePositions[i][3] === attackers[j][1]) {
-            return false;
-          }
-        }
-      }
-
-      //Someone's screwed
-      return true
-
-    } else if (this.checkCount === 1) {
-
-      isCheckMate = null;
-      let attacker = attackers.map((x) => x[2] === king.curPosX && x[3] === king.curPosY)[0]
-
-      /*
-       * For the love of God, someone please capture the piece
-       * Long Live the King!
-       */
-      let defensePositions = this.getAllAttackPositions(king.pieceColor)
-      console.log("Defense : ", defensePositions, "Attacker :", attacker)
-      for (let i = 0; i < defensePositions.length; i++) {
-        if (defensePositions[i][2] === attacker[0] && defensePositions[i][3] === attacker[1]) {
+    /*
+      * For the love of God, someone please capture the piece
+      * Long Live the King!
+      */
+    let defensePositions = this.getAllAttackPositions(king.pieceColor)
+    //console.log("Defense : ", defensePositions, "Attacker :", kingKiller)
+    for (let i = 0; i < defensePositions.length; i++) {
+      for (let j = 0; j < kingKiller.length; j++) {
+        if (defensePositions[i][2] === kingKiller[j][0] && defensePositions[i][3] === kingKiller[j][1]) {
           return false;
         }
       }
+    }
 
-      // For both Single and Double checks
-      // Check if King can capture any attacking piece
+    // For both Single and Double checks
+    // Check if King can capture any attacking piece
+    for (let i = 0; i < kingKiller.length; i++) {
       for (let j = 0; j < kingMoves["x"].length; j++) {
-        if (kingMoves["x"][j] === attacker[0] &&
-          kingMoves["y"][j] === attacker[1]) {
+        if (kingMoves["x"][j] === kingKiller[i][0] &&
+          kingMoves["y"][j] === kingKiller[i][1]) {
           isCheckMate = false;
         }
       }
+    }
 
 
-      if (isCheckMate === false) {
-        return false;
-      }
+    if (isCheckMate === false) {
+      return false;
+    }
 
-      /*
-       * Check if King has any (attacking or non attacking) moves
-       * which are currently NOT under attack.
-       * These moves may come into attack just after taken.
-       */
-      for (let i = 0; i < kingMoves["x"].length; i++) {
-        if (kingMoves["x"][i] !== attacker[2] &&
-          kingMoves["y"][i] !== attacker[3]) {
+    /*
+      * Check if King has any (attacking or non attacking) moves
+      * which are currently NOT under attack.
+      * These moves may come into attack just after taken.
+      */
+    for (let i = 0; i < kingMoves["x"].length; i++) {
+      for (let j = 0; j < kingKiller.length; j++) {
+        if (kingMoves["x"][i] !== kingKiller[j][2] &&
+          kingMoves["y"][i] !== kingKiller[j][3]) {
           isCheckMate = true;
         }
       }
+    }
 
-      if (isCheckMate === null) {
-        return false;
-      }
+    if (isCheckMate === null) {
+      return false;
+    }
 
-      /*
-       * Hope the checkmate is from Queen or Rook.
-       * Let's call it QR attacker. In this case, it's enough
-       * if there can be another piece in between for blocking.
-       */
+    /*
+      * Hope the checkmate is from Queen or Rook.
+      * Let's call it QR attacker. In this case, it's enough
+      * if there can be another piece in between for blocking.
+      */
+    //console.log("Checking for any blockers",kingKiller)
+    for (let x = 0; x < kingKiller.length; x++) {
+      if (kingKiller[x][4] === 'Queen' || kingKiller[x][4] === 'Rook') {
+        let attacker = kingKiller[x];
+        let blockablePositions = []
+        let dx = this.signum(attacker[0] - king.curPosX)
+        let dy = this.signum(attacker[1] - king.curPosY)
 
-      let blockablePositions = []
-      let dx = this.signum(attacker[0] - king.curPosX)
-      let dy = this.signum(attacker[1] - king.curPosY)
+        // I mean, no one kills King, except me of course
+        for (let u = king.curPosX + dx, v = king.curPosY + dy;
+          u !== attacker[0] && v !== attacker[1];
+          u = u + dx, v = v + dy) {
+          blockablePositions.push([u, v])
+        }
 
-      // I mean, no one kills King, except me of course
-      for (let u = king.curPosX + dx, v = king.curPosY + dy;
-        u !== attacker[0] && v !== attacker[1];
-        u = u + dx, v = v + dy) {
-        blockablePositions.push([u, v])
-      }
+        let blockingPositions = this.getAllNextPositions(king.pieceColor).map((x) => [x[2], x[3]])
 
-      let blockingPositions = this.getAllNextPositions(king.pieceColor).map((x) => [x[2], x[3]])
+        //console.log("Blockable : ", blockablePositions, "Blocking : ", blockingPositions)
 
-      console.log("Blockable : ", blockablePositions, "Blocking : ", blockingPositions)
-
-      for (let i = 0; i < blockablePositions.length; i++) {
-        for (let j = 0; j < blockingPositions.length; j++) {
-          if (blockablePositions[i][0] === blockingPositions[j][0] &&
-            blockablePositions[i][1] === blockingPositions[j][1]) {
-            return false;
+        for (let i = 0; i < blockablePositions.length; i++) {
+          for (let j = 0; j < blockingPositions.length; j++) {
+            if (blockablePositions[i][0] === blockingPositions[j][0] &&
+              blockablePositions[i][1] === blockingPositions[j][1]) {
+              return false;
+            }
           }
         }
       }
-
-      return true;
     }
+    return true;
 
   }
 
