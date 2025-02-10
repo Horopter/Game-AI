@@ -1,0 +1,23 @@
+{
+  "name": "chess-engine",
+  "version": "1.0.0",
+  "description": "Chess engine intermediate with multiple board representations. This is not the UI. This is just a client side processor",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node tests/NaiveChess/NaiveChess.test.js && node tests/FENChess/FENChess.test.js && node tests/MoreCompressedChess/MoreCompressedChess.test.js && node tests/UltraCompressedChess/UltraCompressedChess.test.js && node tests/HuffmanChess/HuffmanChess.test.js && node tests/BitboardChess/BitboardChess.test.js"
+  },
+  "type": "module",
+  "keywords": [
+    "chess",
+    "engine",
+    "move-validation",
+    "FEN",
+    "bitboard",
+    "compression"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
