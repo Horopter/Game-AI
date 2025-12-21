@@ -532,16 +532,6 @@ export default class BitboardChess extends ChessInterface {
     return true;
   }
   
-  _movePieceNoValidation(move) {
-    const { from, to } = move;
-    const piece = this.getPieceAt(from);
-    this.removePieceAt(from);
-    if (this.getPieceAt(to) !== 0) {
-      this.removePieceAt(to);
-    }
-    this.updatePiece(piece, to);
-  }
-  
   validateEnPassant(move) {
     if (this.enPassantSquare !== null && move.to === this.enPassantSquare) {
       return 0;

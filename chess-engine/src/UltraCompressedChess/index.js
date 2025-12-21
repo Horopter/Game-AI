@@ -274,4 +274,163 @@ export default class UltraCompressedChess extends ChessInterface {
     this.setSquare(to, piece);
     this.currentTurn = this.currentTurn === "white" ? "black" : "white";
   }
+
+  // --- Advanced Methods ---
+  isKingInCheck(color) {
+    const kingCode = color === "white" ? 6 : 12;
+    let kingIndex = -1;
+    for (let i = 0; i < 64; i++) {
+      if (this.getSquare(i) === kingCode) {
+        kingIndex = i;
+        break;
+      }
+    }
+    if (kingIndex === -1) return false;
+
+    const enemyColor = color === "white" ? "black" : "white";
+    const savedTurn = this.currentTurn;
+    this.currentTurn = enemyColor;
+
+    for (let i = 0; i < 64; i++) {
+      const piece = this.getSquare(i);
+      if (piece !== 0) {
+        const pieceColor = piece <= 6 ? "white" : "black";
+        if (pieceColor === enemyColor) {
+          const move = { from: i, to: kingIndex };
+          if (this.validateMove(move) === MoveValidationResult.VALID) {
+            this.currentTurn = savedTurn;
+            return true;
+          }
+        }
+      }
+    }
+    this.currentTurn = savedTurn;
+    return false;
+  }
+
+  getLegalMoves(color) {
+    const moves = [];
+    for (let i = 0; i < 64; i++) {
+      const piece = this.getSquare(i);
+      if (piece !== 0) {
+        const pieceColor = piece <= 6 ? "white" : "black";
+        if (pieceColor === color) {
+          for (let j = 0; j < 64; j++) {
+            const move = { from: i, to: j };
+            if (this.validateMove(move) === MoveValidationResult.VALID) {
+              const savedState = this.board;
+              const savedTurn = this.currentTurn;
+              try {
+                this.movePiece(move);
+                if (!this.isKingInCheck(color)) {
+                  moves.push(move);
+                }
+              } catch (e) {}
+              this.board = savedState;
+              this.currentTurn = savedTurn;
+            }
+          }
+        }
+      }
+    }
+    return moves;
+  }
+
+  isCheckmate(color) {
+    if (!this.isKingInCheck(color)) return false;
+    return this.getLegalMoves(color).length === 0;
+  }
+
+  isStalemate(color) {
+    if (this.isKingInCheck(color)) return false;
+    return this.getLegalMoves(color).length === 0;
+  }
+
+  canCastle(color, side) {
+    return false;
+  }
+
+  performCastling(color, side) {
+    if (!this.canCastle(color, side)) {
+      throw new Error("Castling not allowed");
+    }
+  }
+
+  validateEnPassant(move) {
+    return MoveValidationResult.ILLEGAL_PAWN_MOVE;
+  }
+
+  performPromotion(move, promotionPiece) {
+    const validationCode = this.validateMove(move);
+    if (validationCode !== MoveValidationResult.VALID) {
+      throw new Error("Invalid move: " + validationCode);
+    }
+    const { from, to } = move;
+    const pawn = this.getSquare(from);
+    if ((pawn === 1 && this.indexToCoord(to).row !== 0) || (pawn === 7 && this.indexToCoord(to).row !== 7)) {
+      throw new Error("Pawn has not reached promotion rank");
+    }
+    this.setSquare(from, 0);
+    this.setSquare(to, promotionPiece);
+    this.currentTurn = this.currentTurn === "white" ? "black" : "white";
+  }
+
+  parseFEN(fen) {
+    const rows = fen.split("/");
+    if (rows.length !== 8) {
+      throw new Error("Invalid FEN: must have 8 rows");
+    }
+    this.board = 0n;
+    const fenMap = {
+      'P': 1, 'N': 2, 'B': 3, 'R': 4, 'Q': 5, 'K': 6,
+      'p': 7, 'n': 8, 'b': 9, 'r': 10, 'q': 11, 'k': 12
+    };
+    let index = 0;
+    for (let row of rows) {
+      for (let char of row) {
+        if (/\d/.test(char)) {
+          index += parseInt(char, 10);
+        } else if (fenMap[char]) {
+          this.setSquare(index, fenMap[char]);
+          index++;
+        }
+      }
+    }
+  }
+
+  exportFEN() {
+    let fen = "";
+    for (let r = 0; r < 8; r++) {
+      let empty = 0;
+      for (let c = 0; c < 8; c++) {
+        const index = r * 8 + c;
+        const piece = this.getSquare(index);
+        if (piece === 0) {
+          empty++;
+        } else {
+          if (empty > 0) {
+            fen += empty;
+            empty = 0;
+          }
+          const fenMap = {
+            1: "P", 2: "N", 3: "B", 4: "R", 5: "Q", 6: "K",
+            7: "p", 8: "n", 9: "b", 10: "r", 11: "q", 12: "k"
+          };
+          fen += fenMap[piece] || "";
+        }
+      }
+      if (empty > 0) fen += empty;
+      if (r < 7) fen += "/";
+    }
+    return fen;
+  }
+
+  parsePGN(pgn) {
+    const tokens = pgn.split(/\s+/).filter(t => !/^\d+\.$/.test(t) && t !== "");
+    return tokens;
+  }
+
+  exportPGN(moves) {
+    return moves.join(" ");
+  }
 }
