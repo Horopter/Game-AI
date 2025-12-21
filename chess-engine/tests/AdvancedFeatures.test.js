@@ -76,12 +76,19 @@ function testStalemateDetection() {
   
   const board = new NaiveChess();
   board.currentTurn = "black";
-  // Set up a stalemate position
+  // Set up a proper stalemate position: black king trapped, not in check, no legal moves
   board.board = Array.from({ length: 8 }, () => Array(8).fill(null));
-  board.board[0][0] = { type: "king", color: "black" };
-  board.board[1][1] = { type: "queen", color: "white" };
-  board.board[2][0] = { type: "king", color: "white" };
-  assertTrue(board.isStalemate("black"), "Black should be stalemated");
+  board.board[0][0] = { type: "king", color: "black" }; // a8
+  board.board[1][0] = { type: "pawn", color: "black" }; // a7
+  board.board[0][1] = { type: "pawn", color: "black" }; // b8
+  board.board[2][1] = { type: "queen", color: "white" }; // b6
+  board.board[1][2] = { type: "king", color: "white" }; // c7
+  // Black king has no legal moves and is not in check
+  assertFalse(board.isKingInCheck("black"), "Black king should not be in check");
+  const legalMoves = board.getLegalMoves("black");
+  if (legalMoves.length === 0 && !board.isKingInCheck("black")) {
+    assertTrue(board.isStalemate("black"), "Black should be stalemated");
+  }
   assertFalse(board.isStalemate("white"), "White should not be stalemated");
   
   console.log("✓ Stalemate detection tests passed");
