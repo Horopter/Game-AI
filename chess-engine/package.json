@@ -4,7 +4,7 @@
   "description": "Chess engine intermediate with multiple board representations. This is not the UI. This is just a client side processor",
   "main": "src/index.js",
   "scripts": {
-    "test": "node tests/NaiveChess/NaiveChess.test.js && node tests/FENChess/FENChess.test.js && node tests/MoreCompressedChess/MoreCompressedChess.test.js && node tests/UltraCompressedChess/UltraCompressedChess.test.js && node tests/HuffmanChess/HuffmanChess.test.js && node tests/BitboardChess/BitboardChess.test.js && node tests/AdvancedFeatures.test.js"
+    "test": "node tests/NaiveChess/NaiveChess.test.js && node tests/FENChess/FENChess.test.js && node tests/MoreCompressedChess/MoreCompressedChess.test.js && node tests/UltraCompressedChess/UltraCompressedChess.test.js && node tests/HuffmanChess/HuffmanChess.test.js && node tests/BitboardChess/BitboardChess.test.js && node tests/AdvancedFeatures.test.js && node tests/HistoricalPositions.test.js"
   },
   "type": "module",
   "keywords": [
