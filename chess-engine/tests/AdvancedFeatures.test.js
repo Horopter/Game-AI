@@ -57,25 +57,14 @@ function testCheckDetection() {
 function testCheckmateDetection() {
   console.log("Testing checkmate detection...");
   
+  // Use Fool's Mate position which is a known checkmate
   const board = new NaiveChess();
+  board.parseFEN("rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR");
   board.currentTurn = "white";
-  // Set up a proper checkmate position (Fool's Mate pattern)
-  board.board = Array.from({ length: 8 }, () => Array(8).fill(null));
-  board.board[7][4] = { type: "king", color: "white" };
-  board.board[7][3] = { type: "queen", color: "white" };
-  board.board[6][4] = { type: "pawn", color: "white" };
-  board.board[6][3] = { type: "pawn", color: "white" };
-  board.board[6][5] = { type: "pawn", color: "white" };
-  board.board[4][7] = { type: "queen", color: "black" }; // Black queen attacking white king
-  board.board[0][4] = { type: "king", color: "black" };
-  // White king is in check and has no legal moves
+  
+  // Fool's Mate: White is checkmated
   assertTrue(board.isKingInCheck("white"), "White king should be in check");
-  // Note: This might not be a true checkmate if there are blocking moves, so we test check detection
-  const legalMoves = board.getLegalMoves("white");
-  // In a proper checkmate, there should be no legal moves
-  if (legalMoves.length === 0) {
-    assertTrue(board.isCheckmate("white"), "White should be checkmated");
-  }
+  assertTrue(board.isCheckmate("white"), "White should be checkmated (Fool's Mate)");
   assertFalse(board.isCheckmate("black"), "Black should not be checkmated");
   
   console.log("✓ Checkmate detection tests passed");
