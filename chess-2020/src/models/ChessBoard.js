@@ -299,7 +299,38 @@ class ChessBoard {
     }
   }
   updateFEN() {
-
+    // Generate FEN string from current board state
+    let fen = "";
+    for (let y = 0; y < this.numSquares; y++) {
+      let empty = 0;
+      for (let x = 0; x < this.numSquares; x++) {
+        const piece = this.allChesspieces.find(p => 
+          p.isAlive && p.curPosX === x && p.curPosY === y
+        );
+        if (!piece) {
+          empty++;
+        } else {
+          if (empty > 0) {
+            fen += empty;
+            empty = 0;
+          }
+          const pieceMap = {
+            'Pawn': piece.pieceColor === Constants.BLACKPIECE ? 'p' : 'P',
+            'Rook': piece.pieceColor === Constants.BLACKPIECE ? 'r' : 'R',
+            'Knight': piece.pieceColor === Constants.BLACKPIECE ? 'n' : 'N',
+            'Bishop': piece.pieceColor === Constants.BLACKPIECE ? 'b' : 'B',
+            'Queen': piece.pieceColor === Constants.BLACKPIECE ? 'q' : 'Q',
+            'King': piece.pieceColor === Constants.BLACKPIECE ? 'k' : 'K'
+          };
+          fen += pieceMap[piece.constructor.name] || '';
+        }
+      }
+      if (empty > 0) fen += empty;
+      if (y < this.numSquares - 1) fen += "/";
+    }
+    // Add turn, castling, en passant, halfmove, fullmove (simplified)
+    fen += ` ${this.turn === Constants.WHITEPIECE ? 'w' : 'b'} - - 0 1`;
+    return fen;
   }
 
   flipTurn() {

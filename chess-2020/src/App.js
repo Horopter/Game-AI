@@ -242,8 +242,9 @@ export default class App extends Component {
         p.createCanvas(Constants.lostCanvasSizeX, Constants.lostCanvasSizeY).parent('lostpieces')
       }
       p.draw = function () {
-        //ToDo : Refactor
         p.clear()
+        // Draw grid for captured pieces display
+        const gridSize = 70;
         for (var i = 0; i < Constants.numSquares; i++) {
           for (var j = 0; j < 4; j++) {
             if ((i + j) % 2 === 0) {
@@ -251,15 +252,17 @@ export default class App extends Component {
             } else {
               p.fill(0, 0, 128);
             }
-            p.rect(i * 70, j * 70, i * 70 + 70, j * 70 + 70)
+            p.rect(i * gridSize, j * gridSize, gridSize, gridSize);
           }
         }
+        // Draw captured pieces
         if (cb && cb.allChesspieces) {
           var deadPieces = cb.allChesspieces.filter((x) => !x.isAlive && !x.needsPromotion);
           for (i = 0; i < Constants.numSquares; i++) {
             for (j = 0; j < 4; j++) {
-              if (i * 8 + j < deadPieces.length) {
-                var cp = deadPieces[i * 8 + j]
+              const index = i * 8 + j;
+              if (index < deadPieces.length) {
+                var cp = deadPieces[index];
                 if (cp) {
                   p.image(p.getImage(cp), i * Constants.sizeX, j * Constants.sizeY, 60, 60);
                 }

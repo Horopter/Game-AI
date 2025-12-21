@@ -227,4 +227,162 @@ export default class FENChess extends ChessInterface {
     this.board[from.row][from.col] = null;
     this.currentTurn = this.currentTurn === "white" ? "black" : "white";
   }
+
+  initializeBoard() {
+    this.loadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
+  }
+
+  loadGame(state) {
+    this.board = state;
+  }
+
+  // --- Advanced Methods ---
+  isKingInCheck(color) {
+    const king = { type: "king", color };
+    let kingPos = null;
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const piece = this.board[row][col];
+        if (piece && piece.type === "king" && piece.color === color) {
+          kingPos = { row, col };
+          break;
+        }
+      }
+      if (kingPos) break;
+    }
+    if (!kingPos) return false;
+
+    const enemyColor = color === "white" ? "black" : "white";
+    const savedTurn = this.currentTurn;
+    this.currentTurn = enemyColor;
+
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const piece = this.board[row][col];
+        if (piece && piece.color === enemyColor) {
+          const move = { from: { row, col }, to: kingPos };
+          if (this.validateMove(move) === MoveValidationResult.VALID) {
+            this.currentTurn = savedTurn;
+            return true;
+          }
+        }
+      }
+    }
+    this.currentTurn = savedTurn;
+    return false;
+  }
+
+  getLegalMoves(color) {
+    const moves = [];
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const piece = this.board[row][col];
+        if (piece && piece.color === color) {
+          for (let toRow = 0; toRow < 8; toRow++) {
+            for (let toCol = 0; toCol < 8; toCol++) {
+              const move = { from: { row, col }, to: { row: toRow, col: toCol } };
+              if (this.validateMove(move) === MoveValidationResult.VALID) {
+                const savedState = this.board.map(r => r.map(c => c ? { ...c } : null));
+                const savedTurn = this.currentTurn;
+                try {
+                  this.movePiece(move);
+                  if (!this.isKingInCheck(color)) {
+                    moves.push(move);
+                  }
+                } catch (e) {}
+                this.board = savedState;
+                this.currentTurn = savedTurn;
+              }
+            }
+          }
+        }
+      }
+    }
+    return moves;
+  }
+
+  isCheckmate(color) {
+    if (!this.isKingInCheck(color)) return false;
+    return this.getLegalMoves(color).length === 0;
+  }
+
+  isStalemate(color) {
+    if (this.isKingInCheck(color)) return false;
+    return this.getLegalMoves(color).length === 0;
+  }
+
+  canCastle(color, side) {
+    return false;
+  }
+
+  performCastling(color, side) {
+    if (!this.canCastle(color, side)) {
+      throw new Error("Castling not allowed");
+    }
+  }
+
+  validateEnPassant(move) {
+    return MoveValidationResult.ILLEGAL_PAWN_MOVE;
+  }
+
+  performPromotion(move, promotionPiece) {
+    const validationCode = this.validateMove(move);
+    if (validationCode !== MoveValidationResult.VALID) {
+      throw new Error("Invalid move: " + validationCode);
+    }
+    const { from, to } = move;
+    const piece = this.board[from.row][from.col];
+    if (piece.type !== "pawn") {
+      throw new Error("Only pawns can be promoted");
+    }
+    if ((piece.color === "white" && to.row !== 0) || (piece.color === "black" && to.row !== 7)) {
+      throw new Error("Pawn has not reached promotion rank");
+    }
+    this.board[to.row][to.col] = { type: promotionPiece, color: piece.color };
+    this.board[from.row][from.col] = null;
+    this.currentTurn = this.currentTurn === "white" ? "black" : "white";
+  }
+
+  parseFEN(fen) {
+    this.loadFEN(fen);
+  }
+
+  exportFEN() {
+    let fen = "";
+    for (let row = 0; row < 8; row++) {
+      let empty = 0;
+      for (let col = 0; col < 8; col++) {
+        const piece = this.board[row][col];
+        if (piece === null) {
+          empty++;
+        } else {
+          if (empty > 0) {
+            fen += empty;
+            empty = 0;
+          }
+          const fenMap = {
+            "pawn": piece.color === "white" ? "P" : "p",
+            "rook": piece.color === "white" ? "R" : "r",
+            "knight": piece.color === "white" ? "N" : "n",
+            "bishop": piece.color === "white" ? "B" : "b",
+            "queen": piece.color === "white" ? "Q" : "q",
+            "king": piece.color === "white" ? "K" : "k"
+          };
+          fen += fenMap[piece.type];
+        }
+      }
+      if (empty > 0) fen += empty;
+      if (row < 7) fen += "/";
+    }
+    return fen;
+  }
+
+  parsePGN(pgn) {
+    const tokens = pgn.split(/\s+/).filter(t => !/^\d+\.$/.test(t) && t !== "");
+    return tokens;
+  }
+
+  exportPGN(moves) {
+    return moves.join(" ");
+  }
 }
